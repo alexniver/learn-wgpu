@@ -1,1 +1,1 @@
-# Learn Wgpu[https://sotrh.github.io/learn-wgpu/]
+# [Learn Wgpu](https://sotrh.github.io/learn-wgpu/)
