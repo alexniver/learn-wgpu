@@ -266,7 +266,7 @@ impl State {
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
-        // update rotate x
+        // update rotate z
         self.transform.rotation.z += 0.1;
         self.queue.write_buffer(
             &self.transform_buffer,
