@@ -38,6 +38,7 @@ pub struct State {
     pub camera_controller: CameraController,
     pub transforms: Vec<crate::instance::Transform>,
     pub transform_buffer: Buffer,
+    pub depth_texture: TextureInfo,
 }
 
 impl State {
@@ -181,6 +182,9 @@ impl State {
 
         let camera_controller = CameraController::new(0.1);
 
+        let depth_texture =
+            texture::TextureInfo::create_depth_texture(&device, &config, "Depth Texture");
+
         let render_pipeline = gen_pipeline(
             &device,
             &config,
@@ -192,7 +196,7 @@ impl State {
             .flat_map(|z| {
                 (0..NUM_INSTANCES_PER_ROW).map(move |x| {
                     let position = Vec3::new(x as f32, 0.0, z as f32);
-                    let rotation = Quat::from_rotation_x(45.0);
+                    let rotation = Quat::from_rotation_z(45.0);
                     crate::instance::Transform::new(position, rotation)
                 })
             })
@@ -228,6 +232,7 @@ impl State {
             camera_controller,
             transforms,
             transform_buffer,
+            depth_texture,
         }
     }
 
@@ -237,6 +242,12 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
+
+            self.depth_texture = texture::TextureInfo::create_depth_texture(
+                &self.device,
+                &self.config,
+                "Depth Texture",
+            );
         }
     }
 
@@ -252,21 +263,6 @@ impl State {
             &self.camera_buffer,
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
-        );
-
-        self.transforms.iter_mut().for_each(|t| {
-            t.rotation *= Quat::from_rotation_x(0.01);
-        });
-        let transform_data = self
-            .transforms
-            .iter()
-            .map(crate::instance::Transform::to_raw)
-            .collect::<Vec<_>>();
-
-        self.queue.write_buffer(
-            &self.transform_buffer,
-            0,
-            bytemuck::cast_slice(&transform_data),
         );
     }
 
@@ -297,7 +293,14 @@ impl State {
                         store: true,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
@@ -361,7 +364,13 @@ fn gen_pipeline(
             unclipped_depth: false,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: texture::TextureInfo::DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: MultisampleState {
             count: 1,
             mask: !0,

@@ -90,15 +90,14 @@ impl CameraController {
                         self.is_left_pressed = is_pressed;
                         true
                     }
-                    Some(VirtualKeyCode::LShift) => {
-                        self.is_down_pressed = is_pressed;
-                        true
-                    }
                     Some(VirtualKeyCode::Space) => {
                         self.is_up_pressed = is_pressed;
                         true
                     }
-
+                    Some(VirtualKeyCode::LShift) => {
+                        self.is_down_pressed = is_pressed;
+                        true
+                    }
                     _ => false,
                 }
             }
@@ -123,11 +122,11 @@ impl CameraController {
         if self.is_right_pressed {
             camera.eye += right * self.speed;
         }
-        if self.is_down_pressed {
-            camera.eye -= camera.up * self.speed;
-        }
         if self.is_up_pressed {
             camera.eye += camera.up * self.speed;
+        }
+        if self.is_down_pressed {
+            camera.eye -= camera.up * self.speed;
         }
     }
 }
